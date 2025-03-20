@@ -1,0 +1,78 @@
+CREATE TABLE new_artist LIKE artists;
+select distinct* from artists;
+
+-- truncate table artists;
+
+create or replace stream artist_stream
+on table artists
+append_only=true;
+
+select distinct * from artist_stream;
+
+merge into new_artist as target 
+using (select distinct * from artists) as source 
+on target."id" =source."id" 
+when not matched then 
+insert ("id", 
+"name", 
+"popularity", 
+"FOLLOWERS", 
+"genres") values(source."id", source."name", source."popularity", source."FOLLOWERS", source."genres");
+select * from new_artist;
+
+alter table new_artist rename column "followers.total" to Followers;
+
+select * from spotify_db.my_schema.albums;
+
+
+create or replace table artists_discography(
+id varchar(50), name varchar(100), total_albums number(5,1), total_singles number(5,1)
+);
+
+select * from artists_discography;
+create table final_artists_discography like artists_discography;
+
+merge into final_artists_discography as target 
+using (select distinct * from artists_discography where id is not null) as source
+on target.id = source.id
+when matched 
+then update set 
+target.total_singles = source.total_singles, 
+target.total_albums =  source.total_albums
+when not matched then 
+insert (id, name, total_albums, total_singles) 
+values(source.id, source.name, source.total_albums, source.total_singles);
+
+select * from final_artists_discography;
+-- truncate final_artists_discography;
+
+create table final_album like albums;
+
+merge into final_album as target 
+using (select distinct * from albums where "album_id" is not null ) as source
+on target."album_id" = source."album_id" and target."track_id" = source."track_id" and target."artist_id"=source."artist_id"
+when matched then
+update set  
+ target."album_popularity"=source."album_popularity"
+when not matched then 
+insert ("album_total_tracks", "album_id", "album_name", "album_release_date", "artists_label", "album_popularity", "track_duration(ms)", "track_id", "track_name", "track_number", "artist_id", "artist_name", "artist_uri") 
+values ( source."album_total_tracks",
+source."album_id",
+source."album_name",
+source."album_release_date",
+source."artists_label",
+source."album_popularity",
+source."track_duration(ms)",
+source."track_id",
+source."track_name",
+source."track_number",
+source."artist_id",
+source."artist_name",
+source."artist_uri"
+);
+
+
+
+
+
+
