@@ -3,15 +3,15 @@ select distinct* from artists;
 
 -- truncate table artists;
 
-create or replace stream artist_stream
-on table artists
-append_only=true;
-
-select distinct * from artist_stream;
-
 merge into new_artist as target 
 using (select distinct * from artists) as source 
-on target."id" =source."id" 
+on target."id" = source."id"
+
+when matched then
+update set 
+target."popularity"= source."popularity",
+target."FOLLOWERS" = source."FOLLOWERS",
+target."genres" = source."genres" 
 when not matched then 
 insert ("id", 
 "name", 
@@ -24,6 +24,7 @@ alter table new_artist rename column "followers.total" to Followers;
 
 select * from spotify_db.my_schema.albums;
 
+--truncate table new_artist;
 
 create or replace table artists_discography(
 id varchar(50), name varchar(100), total_albums number(5,1), total_singles number(5,1)
@@ -70,9 +71,3 @@ source."artist_id",
 source."artist_name",
 source."artist_uri"
 );
-
-
-
-
-
-
